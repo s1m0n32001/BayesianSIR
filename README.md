@@ -1,0 +1,2 @@
+# BayesianSIR
+Covid data analysis
