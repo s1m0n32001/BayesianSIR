@@ -6,6 +6,7 @@ from scipy.stats import gamma as gammadist
 import pandas as pd
 from tqdm.notebook import tqdm
 
+
 class Bayesian_SIR:
     def __init__(self, initial_params, betas, gammas, distro='beta') -> None:
         self.N, self.T, self.I0 = initial_params
@@ -18,13 +19,15 @@ class Bayesian_SIR:
 
     """ Load data """
 
-    def load_data(self, namefile='Singapore_new.csv', N=0, T=0, do_plot=True, save=False):
+    def load_data(self, namefile='Singapore_new_smoothed.csv', N=0, T=0, do_plot=True, save=False):
         self.data = pd.read_csv(namefile)
         self.N = N if N else 5930134
         total_people = self.N
         self.T = T if T else 109
-        self.data["Recovered"] = self.data["New_Recovered"].cumsum(axis = 0, skipna = True)
-        self.data["Susceptible"] = total_people - self.data["Death"] - self.data["Recovered"] - self.data["Infectious"]
+
+        self.data["Susceptible"] = total_people - np.cumsum(self.data["New_Infectious"])
+        self.data["Infectious"] = np.cumsum(self.data["New_Infectious"] - self.data["New_Recovered"])
+        self.data["Recovered"] = np.cumsum(self.data["New_Recovered"])
 
         self.configurations = np.zeros([self.T, 3])
         self.configurations[:, 0] = self.data["Susceptible"]
@@ -237,12 +240,8 @@ class Bayesian_SIR:
             C = I[tt]/N
             D = -S[tt+1]+S[tt]
             A = C*(S[tt]-D)+b[tt]
-            if C > 1e-4:
-                y = npr.beta(a = A/C, b = D+1)
-                new_betas[tt] = -1/C*np.log(y)
-            else:
-                y = npr.exponential(scale=1/(b[tt] + I[tt]*S[tt]/N))
-                new_betas[tt] = y
+            y = npr.beta(a = A/C, b = D+1)
+            new_betas[tt] = -1/C*np.log(y)
         return new_betas
 
     # Sampling from a gamma distribution 
