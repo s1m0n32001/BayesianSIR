@@ -140,7 +140,7 @@ class Bayesian_SIR:
         K = np.sum(delta, dtype=int)
         eta = np.cumsum(delta)
         total = 0
-        for ii in range(K):
+        for ii in range(1, K+1):
             indic = eta == ii
             total = total + 0.2*np.log(0.1) - 2*np.log(gammafunc(0.1))
             total = total + 2*self.mylog(gammafunc(0.1 + np.sum(indic))) - np.sum(indic*self.mylog(gamma))
@@ -181,8 +181,10 @@ class Bayesian_SIR:
             
         eps = np.log(npr.uniform()) 
         if eps < probability:
+            # print(f'Accepted move with p = {probability}')
             return delta_proposed
         else:
+            # print(f'Not accepted move with p = {probability}')
             return delta_now
         
     def propose_delta(self, delta_now, T):
@@ -199,16 +201,19 @@ class Bayesian_SIR:
         
         if choice == 0: # add
             index = npr.choice(np.where(delta_now == 0)[0])
+            # print(f'Adding in position {index}')
             delta[index] += 1
         elif choice == 1: # delete
             index = npr.choice(np.where(delta_now[1:] == 1)[0]) + 1
+            # print(f'Deleting in position {index}')
             delta[index] -= 1
         else: # swap
             candidates = np.where((delta_now[1:T-1] - delta_now[2:T]) != 0)[0] + 1
             index_0 = npr.choice(candidates)
+            # print(f'Swapping in position {candidates}, I choose: {index_0}')
             delta[index_0] = 1 - delta[index_0]
             delta[index_0+1] = 1 - delta[index_0+1]
-
+        # print(f'Final delta = {delta}')
         return delta  
         
 
@@ -218,16 +223,16 @@ class Bayesian_SIR:
         eta = np.cumsum(delta_now)
         K = np.sum(delta_now)
         b_next = np.zeros(K)
-        for kk in range(K):
-            b_next[kk] = npr.gamma(0.1 + np.sum((eta==kk)), 1/(0.1+np.sum(beta_now*(eta==kk))))
+        for kk in range(1, K+1):
+            b_next[kk-1] = npr.gamma(0.1 + np.sum((eta==kk)), 1/(0.1+np.sum(beta_now*(eta==kk))))
         return b_next
 
     def update_r(self, delta_now, gamma_now):
         eta = np.cumsum(delta_now)
         K = np.sum(delta_now)
         r_next = np.zeros(K)
-        for kk in range(K):
-            r_next[kk] = npr.gamma(0.1 + np.sum((eta==kk)), 1/(0.1 + np.sum(-self.mylog(gamma_now)*(eta==kk))))
+        for kk in range(1, K+1):
+            r_next[kk-1] = npr.gamma(0.1 + np.sum((eta==kk)), 1/(0.1 + np.sum(-self.mylog(gamma_now)*(eta==kk))))
         return r_next
     
 
@@ -253,7 +258,7 @@ class Bayesian_SIR:
             new_betas[tt] = npr.gamma(delta_I + 1, 1./(S[tt]-delta_I + b[tt]/P_t))/P_t
         return new_betas
     
-    def update_beta(self, S, I, N, T, b, distro='gamma'):
+    def update_beta(self, S, I, N, T, b, distro='beta'):
         return self.update_beta_via_gamma(S, I, N, T, b) if distro == ' gamma' else self.update_beta_via_beta(S, I, N, T, b)
 
     def update_gamma(self, I, R, N, T, r):
@@ -283,7 +288,7 @@ class Bayesian_SIR:
 
         KK = np.sum(delta_0)
         eta = np.cumsum(delta_0)
-        rb = npr.gamma(shape = .1, scale = 10, size = (2,KK))
+        rb = npr.gamma(shape = .1, scale = 10, size = (2, KK))
         r_0 = rb[0]
         b_0 = rb[1]
 
@@ -454,8 +459,8 @@ class Bayesian_SIR:
 
         # Loop to find information
         m_i = 0
-        for kk in range(K):
-            for kkk in range(K_hat):
+        for kk in range(1, K+1):
+            for kkk in range(1, K_hat+1):
                 n_real = sum(eta_real == kk)
                 n_guess = sum(eta_guess == kkk)
                 nn = self.n_k_kp(kk, kkk, eta_real, eta_guess)
