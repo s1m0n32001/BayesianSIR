@@ -3,10 +3,11 @@ import numpy.random as npr
 import matplotlib.pyplot as plt
 from scipy.special import gamma as gammafunc
 from scipy.stats import gamma as gammadist
+import pandas as pd
 from tqdm.notebook import tqdm
 
 class Bayesian_SIR:
-    def __init__(self, initial_params, betas, gammas, distro='gamma') -> None:
+    def __init__(self, initial_params, betas, gammas, distro='beta') -> None:
         self.N, self.T, self.I0 = initial_params
         self.betas = betas
         self.gammas = gammas 
@@ -14,6 +15,55 @@ class Bayesian_SIR:
 
         # self.simulation()
         # self.run(...)
+
+    """ Load data """
+
+    def load_data(self, namefile='Singapore_new.csv', N=0, T=0, do_plot=True, save=False):
+        self.data = pd.read_csv(namefile)
+        self.N = N if N else 5930134
+        total_people = self.N
+        self.T = T if T else 109
+        self.data["Recovered"] = self.data["New_Recovered"].cumsum(axis = 0, skipna = True)
+        self.data["Susceptible"] = total_people - self.data["Death"] - self.data["Recovered"] - self.data["Infectious"]
+
+        self.configurations = np.zeros([self.T, 3])
+        self.configurations[:, 0] = self.data["Susceptible"]
+        self.configurations[:, 1] = self.data["Infectious"]
+        self.configurations[:, 2] = self.data["Recovered"]
+
+        if do_plot:
+            xs = np.arange(0, self.T)
+            ss = self.configurations[:, 0]/self.N
+            ii = self.configurations[:, 1]/self.N + ss
+            rr = self.configurations[:, 2]/self.N + ii
+
+            fig, ax = plt.subplots(1, 2, figsize=(15, 6))
+            ax[0].plot(ss, c = "black")
+            ax[0].plot(ii, c = "black")
+            ax[0].plot(rr, c = "black")
+            ax[0].set_ylim([0, 1])
+
+            ax[0].fill_between(xs, 0, ss, label = "S", color = "limegreen")
+            ax[0].fill_between(xs, ss, ii, label = "I", color = "orangered")
+            ax[0].fill_between(xs, ii, rr, label = "R", color = "cornflowerblue")
+
+            ax[0].set_xlim([0, self.T-1])
+            ax[0].set_xlabel('Day')
+            ax[0].set_ylabel('Proportion')
+            ax[0].legend()
+            
+            ax[1].plot(self.configurations[:, 0]/self.N, label = "S", color = "limegreen")
+            ax[1].plot(self.configurations[:, 1]/self.N, label = "I", color = "orangered")
+            ax[1].plot(self.configurations[:, 2]/self.N, label = "R", color = "cornflowerblue")
+            ax[1].set_xlabel('Day')
+            ax[1].grid(ls='--', alpha=0.5)
+            ax[1].legend()
+
+            plt.suptitle("Real data with varying parameters")
+            if save:
+                plt.savefig(f'real_data.png', dpi=500)
+            plt.show()
+
 
 
     """ Data generation """
@@ -215,15 +265,18 @@ class Bayesian_SIR:
         return new_gammas
 
 
-    def run(self, p, n_steps, burnin, thin):
+    def run(self, p, n_steps, burnin, thin, data_file = "", N=0, T=0, do_plot=True, save=False):
+        if not data_file:
+            self.simulation(do_plot=False)
+        else:
+            self.load_data(data_file, N=N, T=T, do_plot=do_plot, save=save)
+
         T = self.T - 1
         betas_run = np.zeros([T, n_steps])
         gammas_run = np.zeros([T, n_steps])
         bs_run = np.zeros([T, n_steps])
         rs_run = np.zeros([T, n_steps])
         deltas_run = np.zeros([T, n_steps])
-
-        self.simulation(do_plot=False)
 
         # Initialize parameters
         delta_0 = (npr.uniform(size = T) < p).astype(int)
