@@ -7,9 +7,8 @@ In this work we aim to recreate the results from the stochastic SIR model with c
 
 We start from the equations of the stochastic SIR model:
 
-$$ 
-\begin{cases}
-  \Delta I_t \sim \text{Binomial}(S_{t-1}, 1-exp(-\beta_tP_{t-1})) \\
+$$
+\begin{cases}  \Delta I_t \sim \text{Binomial}(S_{t-1}, 1-exp(-\beta_tP_{t-1})) \\
   \Delta R_t \sim \text{Binomial}(I_{t-1}, \gamma_t) \\
   S_t = S_{t-1} - \Delta I_t \\
   I_t = I_{t-1} + \Delta I_t - \Delta R_t \\
@@ -18,7 +17,7 @@ $$
 $$
 
 Where the transmission and removal rates $\beta = (\beta_1, ..., \beta_T), \gamma = (\gamma_1, ..., \gamma_T)$ depend on time. 
-They are drawn from probability distributions whose characteristic parameter ($b$ or $r$) changes as the epidemic enters a different stage. Thus, the *change points* correspond to a shift in the average transmission/removal rates. This is summarized in the vector 
+They are drawn from probability distributions whose characteristic parameters ($b$ or $r$) change as the epidemic enters a different stage. Thus, the *change points* correspond to a shift in the average transmission/removal rates. This is summarized in the vector 
 
 $$\delta_t = 
 \begin{cases}
@@ -28,18 +27,38 @@ $$\delta_t =
 
 Starting from the time series $(\Delta I_t, \Delta R_t)_{t=1,...,T}$ with the initial conditions $(S_0,I_0,R_0)$, our goal is to infere $\delta, b,r, \beta, \gamma$.
 
-The posterior probability is sampled through a Markov Chain Monte Carlo algorithm, which looks like this:
+The posterior probability is sampled through a Markov Chain Monte Carlo algorithm, in which a step $g$ looks like this:
 
 1. propose a new $\delta$: delete, add or swap a $1$.
-2. accept it with probability $p = \text{min}(1,\pi_{MH})$
-3. propose 
+   
+  $\delta^{(g)} \rightarrow \delta^*$
+
+3. accept $\delta^{(g+1)} = \delta^*$ with probability $p = \text{min}(1,\pi_{MH})$. If rejected, $\delta^{(g+1)} = \delta^{(g)}$. 
+   <!-- pi_MH = TODO  this formula is probably not correct, since our delta estimator cannot predict non-drastic change points-->   
+5. update $b,r$.
+   <!-- b,r ~ some Gamma function -->
+7. update $\beta, \gamma$:
+   
+<!-- $$ y \sim Beta(\Delta I_t + 1, S_{t-1} - \Delta I_t - \frac{b^{(g+1)}_{\eta_t^{(g+1)}}}{P_{t-1}} + 1) $$  then $\beta_t^{(g+1)} = -\frac{log (y)}{P_{t-1}}$ and similarly, -->
+Through some calculations, we find that 
+$y  \sim \text{Beta}(S_{t-1} - \Delta I_t - b_{\eta_t}^{(g+1)}/P_{t-1} +1, \Delta I_t + 1)$,
+from which $\beta_t^{(g+1)} = -\frac{log (y)}{P_{t-1}}$
+
+Similarly, 
+$\gamma_t \sim \text{Beta}(\Delta R_t+b_{\eta_t}^{(g+1)}, I_{t-1}-\Delta R_t+1)$. 
+In both cases, the posterior is a combination of the likelihood of a binomial variable ($\Delta I_t$ or $\Delta R_t$) and its prior (an exponential distribution for $\beta$ and a Beta for $\gamma$).
+
+The final estimate of $\beta, \gamma$ is the average of the sampled betas/gammas, which are compared with good results with the naive estimators ...TODO
 
 So overall the flowchart is 
-  for g in range (G):
-    propose delta 
-      -> accept -> change b,r,beta,gamma
-      -> refuse -> keep values
-  
+  for g in range (G): <!-- after burnin, include thinning -->
+    propose delta -> accept/refuse
+    update change b,r,beta,gamma
+
+  derive BayesEstimate for delta
+  compare w paper result
+    -> sharp transitions detected, smoother ones go under the radar
+    
 
 
 
