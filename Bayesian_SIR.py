@@ -1,10 +1,8 @@
 import numpy as np
 import numpy.random as npr
 import matplotlib.pyplot as plt
-from scipy.special import gamma as gammafunc, comb
-from scipy.stats import gamma as gammadist
+from scipy.special import gamma as gammafunc
 import pandas as pd
-from math import factorial
 from tqdm.notebook import tqdm
 
 
@@ -135,15 +133,6 @@ class Bayesian_SIR:
             return np.log(x) if x > 0 else -744
 
 
-    def my_log_gamma (self, n):
-        integer = int(n)
-        rest = n - integer
-        if integer > 0:
-            return sum(self.mylog(np.array([ii for ii in range(0, integer)]) + rest))
-        else:
-            return self.mylog(rest)
-
-
     """ Delta update """
 
     def conditional_betagamma(self, delta, beta, gamma):
@@ -152,10 +141,11 @@ class Bayesian_SIR:
         total = 0
         for ii in range(1, K+1):
             indic = eta == ii
-            total = total + 0.2*np.log(0.1) - 2*self.my_log_gamma(0.1)
-            total = total + 2*self.my_log_gamma(0.1 + np.sum(indic)) # - self.my_log_gamma(np.sum(indic) + 1)
+            total = total + 0.2*np.log(0.1) - 2*np.log(gammafunc(0.1))
+            total = total + 2*self.mylog(gammafunc(0.1 + np.sum(indic))) - np.sum(indic*self.mylog(gamma))
             total = total - (0.1+np.sum(indic))*(self.mylog(.1 + np.sum(indic*beta)) + self.mylog(0.1 - np.sum(indic*self.mylog(gamma))))
         return total
+
         
 
     def JJ(self, delta_proposed, delta_now, T):
@@ -181,7 +171,7 @@ class Bayesian_SIR:
     def update_delta(self, delta_proposed, delta_now, beta_now, gamma_now, p, T):
         # Step 1: evaluate first term pi/pi
         difference = np.sum(delta_proposed - delta_now)
-        first_term = difference*np.log(p/(1-p)) # + np.log(comb(T, np.sum(delta_proposed))) - np.log(comb(T, T-np.sum(delta_now)))
+        first_term = difference*np.log(p/(1-p))
 
         # Step 2: evaluate second term:
         second_term = self.conditional_betagamma(delta_proposed, beta_now, gamma_now)
@@ -214,21 +204,20 @@ class Bayesian_SIR:
             
         choice = npr.choice([0,1,2], p = probs)
         
-        if choice == 0: # add
+        if choice == 0: 
+            # add
             index = npr.choice(np.where(delta_now == 0)[0])
-            # print(f'Adding in position {index}')
             delta[index] += 1
-        elif choice == 1: # delete
+        elif choice == 1: 
+            # delete
             index = npr.choice(np.where(delta_now[1:] == 1)[0]) + 1
-            # print(f'Deleting in position {index}')
             delta[index] -= 1
-        else: # swap
+        else: 
+            # swap
             candidates = np.where((delta_now[1:T-1] - delta_now[2:T]) != 0)[0] + 1
             index_0 = npr.choice(candidates)
-            # print(f'Swapping in position {candidates}, I choose: {index_0}')
             delta[index_0] = 1 - delta[index_0]
             delta[index_0+1] = 1 - delta[index_0+1]
-        # print(f'Final delta = {delta}')
         return delta  
         
 
@@ -400,7 +389,7 @@ class Bayesian_SIR:
             else:
                 Index_add = False
             
-            if np.sum(delta_final, dtype=int) in range(1, T):
+            if np.sum(delta_final, dtype=int) in range(2, T):
                 all_loss = []
                 candidate_indexes = np.where((delta_final[1:T-1] - delta_final[2:T]) != 0)[0] + 1
                 for i in candidate_indexes:
