@@ -42,15 +42,15 @@ The posterior probability is sampled through a Markov Chain Monte Carlo algorith
 
 Finally, the ratio $\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})}$ s is computed as
 
-$$\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})} = \begin{cases}
-1\text{ if }K^{(g)} = K_{proposed}\\
+$$ \frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})} = \begin{cases}
+\frac{\sum_t \mathcal{1}(\delta^{(g),t} \neq \delta^{(g), t+1})}{\sum_t \mathcal{1}(\delta^{\*,t} \neq \delta^{\*,t+1})}\text{ if }K^{(g)} = K_{proposed}\\
 \frac{3}{T-1}\text{ if }(K_{proposed}, K^{(g)}) = (1,2)\text{ or }(T, T-1)\\
 \frac{T-11}{3}\text{ if }(K_{proposed}, K^{(g)}) = (2,1)\text{ or }(T-1, T)\\
 \frac{\sum \delta_t^{(g)} - 1}{T - \sum_t \delta}\text{ if }(K_{proposed}, K^{(g)}) = (2,3)\dots(T-2, T-1)\\
 \frac{T - \sum_t \delta}{\sum_t \delta_t^{(g)} - 1}\text{ if }(K_{proposed}, K^{(g)}) = (3,2),\dots,(T-1,T-2)
    \end{cases}$$
    <!-- pi_MH = TODO  this formula is probably not correct, since our delta estimator cannot predict non-drastic change points-->   
-#### 3a. update $b,r$.
+#### 3a. Update $b,r$.
 Once we have sampled the new $\delta^{\*}$, we get a new $\eta^\*$ and $K^\*$ according to the definitions above. We then sample $b$ and $r$ as 
 
 $$b_k \sim\text{Gamma}(0.1 + \sum_{t} \mathcal{1}(\eta_t = k), 0.1 + \sum_t \beta_t \mathcal{1(\eta_t = k)})$$
@@ -58,12 +58,21 @@ and
 
 $$r_k \sim\text{Gamma}(0.1 + \sum_{t}\mathcal{1}(\eta_t = k), 0.1 - \sum_t \log{\gamma_t})\mathcal{1}(\eta_t = k)$$
    <!-- b,r ~ some Gamma function -->
-#### 3b. update $\beta, \gamma$:
-   
+#### 3b. Update $\beta, \gamma$:
+   Finally, we can update the parameters $\beta$ and $\gamma$. 
+
+   We sample $\beta$ from its posterior distribution:
+
+  $$\beta \sim (1-\exp(\-\beta_t P_{t-1}))^{\Delta I_T}\exp(-\beta_t P_{t-1}(S_{t-1} - \Delta T_t))\pi(\beta_t|b^{(g+1)}_{\eta_t^{(g+1)}}) $$
+
+  To do this efficiently, we apply the change of variable $y := e^{-\beta_t P_{t-1} }$ and get that 
+
+  $$y \sim \text{Beta}(A/C, D+1)$$
+
+  with $C = p_{t-1}$, $D = \Delta I_{t-1}$ and $A = -\beta_t P_{t-1}(S_{t-1} -\Delta I_t + b)$
+  
 <!-- $$ y \sim Beta(\Delta I_t + 1, S_{t-1} - \Delta I_t - \frac{b^{(g+1)}_{\eta_t^{(g+1)}}}{P_{t-1}} + 1) $$  then $\beta_t^{(g+1)} = -\frac{log (y)}{P_{t-1}}$ and similarly, -->
-Through some calculations, we find that 
-$y  \sim \text{Beta}(S_{t-1} - \Delta I_t - b_{\eta_t}^{(g+1)}/P_{t-1} +1, \Delta I_t + 1)$,
-from which $\beta_t^{(g+1)} = -\frac{log (y)}{P_{t-1}}$
+Therefore, we can sample $y$ from the beta distribution and get $\beta_t^{(g+1)} = -\frac{log (y)}{P_{t-1}}$.
 
 Similarly, 
 $\gamma_t \sim \text{Beta}(\Delta R_t+b_{\eta_t}^{(g+1)}, I_{t-1}-\Delta R_t+1)$. 
