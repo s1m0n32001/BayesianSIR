@@ -36,7 +36,7 @@ The posterior probability is sampled through a Markov Chain Monte Carlo algorith
   $\delta^{(g)} \rightarrow \delta^*$
 
 #### 2. Accept $\delta^{(g+1)} = \delta^*$ with probability $p = \text{min}(1,\pi_{MH})$. If rejected, $\delta^{(g+1)} = \delta^{(g)}$. 
-  The proposal is accepted with probability given by $m = \frac{\pi(\beta^{(g)}), \gamma^{(g)} | \delta^{\*})}{\pi(\beta^{(g)}, \gamma^{(g)}|\delta^{(g)})} \frac{\pi(\delta^\*)}{\pi(\delta^{(g)})}\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})}$. This ratio is computed in the following way:
+  The proposal is accepted with probability given by $m = \min(1, \frac{\pi(\beta^{(g)}), \gamma^{(g)} | \delta^{\*})}{\pi(\beta^{(g)}, \gamma^{(g)}|\delta^{(g)})} \frac{\pi(\delta^\*)}{\pi(\delta^{(g)})}\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})})$. This ratio is computed in the following way:
    - $\frac{\pi(\delta^\*)}{\pi(\delta^{(g)})} = \left(\frac{p}{1-p}\right)^{\sum_t(\delta^\*_t-\delta^{(g)}_t)}$
    - $\pi(\beta^{(g)},\gamma^{(g)}|\delta) = \prod_{k} \left(\frac{0.1^{0.1}}{\Gamma(0.1)}\right)^2 \frac{\Gamma(0.1 + \sum_{t} \mathcal{1}(\eta_t = k))^2}{(\Gamma(0.1 + \sum_t \mathcal{1}(\eta_t = k)\beta_t)\cdot\Gamma(0.1 - \sum_t \mathcal{1}(\eta_t = k)\log\gamma_t))^{0.1 + \sum_t \mathcal{1}(\eta_t = k)}}$
 
@@ -51,6 +51,12 @@ $$\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})} = \begin{cases}
    \end{cases}$$
    <!-- pi_MH = TODO  this formula is probably not correct, since our delta estimator cannot predict non-drastic change points-->   
 #### 3a. update $b,r$.
+Once we have sampled the new $\delta^{\*}$, we get a new $\eta^\*$ and $K^\*$ according to the definitions above. We then sample $b$ and $r$ as 
+
+$$b_k \sim\text{Gamma}(0.1 + \sum_{t} \mathcal{1}(\eta_t = k), 0.1 + \sum_t \beta_t \mathcal{1(\eta_t = k)})$$
+and
+
+$$r_k \sim\text{Gamma}(0.1 + \sum_{t}\mathcal{1}(\eta_t = k), 0.1 - \sum_t \log{\gamma_t})\mathcal{1}(\eta_t = k)$$
    <!-- b,r ~ some Gamma function -->
 #### 3b. update $\beta, \gamma$:
    
