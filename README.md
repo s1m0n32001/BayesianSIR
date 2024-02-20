@@ -25,15 +25,30 @@ $$\delta_t =
 0 \text{ otherwise}
 \end{cases} $$
 
+We can then define $K:=\sum_t \delta_t$ and $\eta_t = \sum_{1, \dots, t}\delta_t$.
+
 Starting from the time series $(\Delta I_t, \Delta R_t)_{t=1,...,T}$ with the initial conditions $(S_0,I_0,R_0)$, our goal is to infere $\delta, b,r, \beta, \gamma$.
 
 The posterior probability is sampled through a Markov Chain Monte Carlo algorithm, in which a step $g$ looks like this:
 
-#### 1. propose a new $\delta$: delete, add or swap a $1$.
-   
+#### 1. Propose a new $\delta$: delete, add or swap a $1$.
+  In this first step, we propose a new $\delta^{\*}$ starting from the current one. The proposal is obtained by either **adding a transition** (i.e. adding a 1 in the $\delta$ vector), **removing a transition** (removing a 1 in the $\delta$ vector) or **swapping** two adjacent (and different) entries of $\delta$. If the vector is $[1, 0, 0, \dots, 0]$, we choose the **add** operation. Similarly, if the vector is $[1,1,1,\dots, 1]$, we choose the **remove** operation. In all other cases, the operation is chosen among these three with probability $[1/3, 1/3, 1/3]$.
   $\delta^{(g)} \rightarrow \delta^*$
 
-#### 2. accept $\delta^{(g+1)} = \delta^*$ with probability $p = \text{min}(1,\pi_{MH})$. If rejected, $\delta^{(g+1)} = \delta^{(g)}$. 
+#### 2. Accept $\delta^{(g+1)} = \delta^*$ with probability $p = \text{min}(1,\pi_{MH})$. If rejected, $\delta^{(g+1)} = \delta^{(g)}$. 
+  The proposal is accepted with probability given by $m = \frac{\pi(\beta^{(g)}), \gamma^{(g)} | \delta^{\*})}{\pi(\beta^{(g)}, \gamma^{(g)}|\delta^{(g)})} \frac{\pi(\delta^\*)}{\pi(\delta^{(g)})}\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})}$. This ratio is computed in the following way:
+   - $\frac{\pi(\delta^\*)}{\pi(\delta^{(g)})} = \left(\frac{p}{1-p}\right)^{\sum_t(\delta^\*_t-\delta^{(g)}_t)}$
+   - $\pi(\beta^{(g)},\gamma^{(g)}|\delta) = \prod_{k} \left(\frac{0.1^{0.1}}{\Gamma(0.1)}\right)^2 \frac{\Gamma(0.1 + \sum_{t} \mathcal{1}(\eta_t = k))^2}{(\Gamma(0.1 + \sum_t \mathcal{1}(\eta_t = k)\beta_t)\cdot\Gamma(0.1 - \sum_t \mathcal{1}(\eta_t = k)\log\gamma_t))^{0.1 + \sum_t \mathcal{1}(\eta_t = k)}}$
+
+Finally, the ratio $\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})}$ s is computed as
+
+$$\frac{J(\delta^{(g)}|\delta^\*)}{J(\delta^\*|\delta^{(g)})} = \begin{cases}
+1\text{ if }K^{(g)} = K_{proposed}\\
+\frac{3}{T-1}\text{ if }(K_{proposed}, K^{(g)}) = (1,2)\text{ or }(T, T-1)\\
+\frac{T-11}{3}\text{ if }(K_{proposed}, K^{(g)}) = (2,1)\text{ or }(T-1, T)\\
+\frac{\sum \delta_t^{(g)} - 1}{T - \sum_t \delta}\text{ if }(K_{proposed}, K^{(g)}) = (2,3)\dots(T-2, T-1)\\
+\frac{T - \sum_t \delta}{\sum_t \delta_t^{(g)} - 1}\text{ if }(K_{proposed}, K^{(g)}) = (3,2),\dots,(T-1,T-2)
+   \end{cases}$$
    <!-- pi_MH = TODO  this formula is probably not correct, since our delta estimator cannot predict non-drastic change points-->   
 #### 3a. update $b,r$.
    <!-- b,r ~ some Gamma function -->
