@@ -1,9 +1,10 @@
 import numpy as np
 import numpy.random as npr
 import matplotlib.pyplot as plt
-from scipy.special import gamma as gammafunc
+from scipy.special import gamma as gammafunc, comb
 from scipy.stats import gamma as gammadist
 import pandas as pd
+from math import factorial
 from tqdm.notebook import tqdm
 
 
@@ -64,7 +65,7 @@ class Bayesian_SIR:
 
             plt.suptitle("Real data with varying parameters")
             if save:
-                plt.savefig(f'real_data.png', dpi=500)
+                plt.savefig(f'{save}/real_data.png', dpi=500)
             plt.show()
 
 
@@ -118,7 +119,7 @@ class Bayesian_SIR:
 
             plt.suptitle("Simulated data with varying parameters")
             if save:
-                plt.savefig(f'simulated_data.png', dpi=500)
+                plt.savefig(f'{save}/simulated_data.png', dpi=500)
             plt.show()
 
 
@@ -134,6 +135,15 @@ class Bayesian_SIR:
             return np.log(x) if x > 0 else -744
 
 
+    def my_log_gamma (self, n):
+        integer = int(n)
+        rest = n - integer
+        if integer > 0:
+            return sum(self.mylog(np.array([ii for ii in range(0, integer)]) + rest))
+        else:
+            return self.mylog(rest)
+
+
     """ Delta update """
 
     def conditional_betagamma(self, delta, beta, gamma):
@@ -142,38 +152,43 @@ class Bayesian_SIR:
         total = 0
         for ii in range(1, K+1):
             indic = eta == ii
-            total = total + 0.2*np.log(0.1) - 2*np.log(gammafunc(0.1))
-            total = total + 2*self.mylog(gammafunc(0.1 + np.sum(indic))) - np.sum(indic*self.mylog(gamma))
+            total = total + 0.2*np.log(0.1) - 2*self.my_log_gamma(0.1)
+            total = total + 2*self.my_log_gamma(0.1 + np.sum(indic)) # - self.my_log_gamma(np.sum(indic) + 1)
             total = total - (0.1+np.sum(indic))*(self.mylog(.1 + np.sum(indic*beta)) + self.mylog(0.1 - np.sum(indic*self.mylog(gamma))))
         return total
+        
 
     def JJ(self, delta_proposed, delta_now, T):
         
-        sum_proposed = np.sum(delta_proposed).astype(int)
-        sum_now = np.sum(delta_now).astype(int)
+        sum_proposed = np.sum(delta_proposed, dtype=int)
+        sum_now = np.sum(delta_now, dtype=int)
         
+        candidates_proposed = np.where((delta_proposed[1:T-1] - delta_proposed[2:T]) != 0)[0] + 1
+        candidates_now = np.where((delta_now[1:T-1] - delta_now[2:T]) != 0)[0] + 1
+        
+
         if sum_proposed == sum_now:
-            return 1
+            return 1./len(candidates_proposed)*len(candidates_now)
         elif [sum_proposed, sum_now] == [1, 2] or [sum_proposed, sum_now] == [T, T-1]:
             return 3/(T-1)
         elif [sum_proposed, sum_now] == [2, 1] or [sum_proposed, sum_now] == [T-1, T]:
             return (T-1)/3
         elif sum_proposed < sum_now:
-            return (sum_now - 1)/(T-sum_proposed)
+            return (sum_now-1)/(T-sum_proposed)
         else:
-            return (T- sum_now) / (sum_proposed - 1)
+            return (T-sum_now)/(sum_proposed-1)
         
     def update_delta(self, delta_proposed, delta_now, beta_now, gamma_now, p, T):
-        #Step 1: evaluate first term pi/pi
+        # Step 1: evaluate first term pi/pi
         difference = np.sum(delta_proposed - delta_now)
-        first_term = difference*self.mylog(p/(1-p))
-        
-        #Step 2: evaluate second term:
+        first_term = difference*np.log(p/(1-p)) # + np.log(comb(T, np.sum(delta_proposed))) - np.log(comb(T, T-np.sum(delta_now)))
+
+        # Step 2: evaluate second term:
         second_term = self.conditional_betagamma(delta_proposed, beta_now, gamma_now)
         second_term -= self.conditional_betagamma(delta_now, beta_now, gamma_now)
         
-        #Step 3: evaluate third term
-        third_term = self.mylog(self.JJ(delta_proposed, delta_now, T))
+        # Step 3: evaluate third term
+        third_term = np.log(self.JJ(delta_proposed, delta_now, T))
         
         log_m = first_term + second_term + third_term
             
@@ -224,7 +239,7 @@ class Bayesian_SIR:
         K = np.sum(delta_now)
         b_next = np.zeros(K)
         for kk in range(1, K+1):
-            b_next[kk-1] = npr.gamma(0.1 + np.sum((eta==kk)), 1/(0.1+np.sum(beta_now*(eta==kk))))
+            b_next[kk-1] = npr.gamma(0.1 + np.sum((eta==kk)), 1./(0.1+np.sum(beta_now*(eta==kk))))
         return b_next
 
     def update_r(self, delta_now, gamma_now):
@@ -232,14 +247,14 @@ class Bayesian_SIR:
         K = np.sum(delta_now)
         r_next = np.zeros(K)
         for kk in range(1, K+1):
-            r_next[kk-1] = npr.gamma(0.1 + np.sum((eta==kk)), 1/(0.1 + np.sum(-self.mylog(gamma_now)*(eta==kk))))
+            r_next[kk-1] = npr.gamma(0.1 + np.sum((eta==kk)), 1./(0.1 + np.sum(-self.mylog(gamma_now)*(eta==kk))))
         return r_next
     
 
     """ β and γ update """
     
     # Sampling from a beta or exponential distribution 
-    def update_beta_via_beta(self, S, I, N, T, b): #cool beta distribution trick
+    def update_beta_via_beta(self, S, I, N, T, b): # cool beta distribution trick
         new_betas = np.zeros(T)
         for tt in range(T):
             C = I[tt]/N
@@ -259,7 +274,7 @@ class Bayesian_SIR:
         return new_betas
     
     def update_beta(self, S, I, N, T, b, distro='beta'):
-        return self.update_beta_via_gamma(S, I, N, T, b) if distro == ' gamma' else self.update_beta_via_beta(S, I, N, T, b)
+        return self.update_beta_via_gamma(S, I, N, T, b) if distro == 'gamma' else self.update_beta_via_beta(S, I, N, T, b)
 
     def update_gamma(self, I, R, N, T, r):
         new_gammas = np.zeros(T)
@@ -295,7 +310,7 @@ class Bayesian_SIR:
         r_0 = r_0[eta-1]
         b_0 = b_0[eta-1]
 
-        beta_0 = npr.exponential(1/b_0)
+        beta_0 = npr.exponential(1./b_0)
         gamma_0 = npr.beta(r_0, 1)
 
         delta = delta_0.copy()
@@ -306,7 +321,7 @@ class Bayesian_SIR:
 
         print(f'Updating beta, gamma and delta parameters...')
 
-        for step in tqdm(list(range(n_steps)), total=n_steps, desc='Buffering...', colour='green'):
+        for step in tqdm(range(n_steps), total=n_steps, desc='Buffering...', colour='green'):
             delta_new = self.propose_delta(delta, T)
             delta = self.update_delta(delta_new, delta, beta, gamma, p, T)
 
@@ -317,7 +332,7 @@ class Bayesian_SIR:
             b = b[eta-1]
             r = r[eta-1]
             
-            beta = self.update_beta(self.configurations[:,0], self.configurations[:,1], self.N, T, b, distro=self.distro)
+            beta = self.update_beta(self.configurations[:,0], self.configurations[:, 1], self.N, T, b, distro=self.distro)
             gamma = self.update_gamma(self.configurations[:,1], self.configurations[:,2], self.N, T, r)
             
             if step >= burnin:
@@ -348,6 +363,7 @@ class Bayesian_SIR:
         for t in range(G):
             self.q_matrix += (self.etas_samples[:, t] == self.etas_samples[:, t][:, None]).astype(int)
         self.q_matrix = self.q_matrix/G
+        # self.q_matrix -= np.identity(T)
         
         # Find best delta
         print(f'Finding best delta minimizing the loss...')
@@ -368,25 +384,25 @@ class Bayesian_SIR:
             all_loss = []
             candidate_indexes = range(1, T)
             for i in candidate_indexes:
-                delta_candidate = np.copy(delta_final)
+                delta_candidate = delta_final.copy()
                 # Propose a transition:
                 delta_candidate[i] = 1 - delta_candidate[i]
                 eta_candidate = np.cumsum(delta_candidate)
                 candidate_loss = compute_loss(eta_candidate, self.q_matrix)
                 all_loss.append(candidate_loss)
-            if min(all_loss) < current_loss:
+            
+            if all_loss and min(all_loss) < current_loss:
                 # better delta found: add transition
                 current_loss = min(all_loss)
-                best_index = candidate_indexes[np.argmin(all_loss)]
+                best_index = int(candidate_indexes[np.argmin(all_loss)])
                 delta_final[best_index] = 1 - delta_final[best_index]
                 Index_add = True
             else:
                 Index_add = False
             
-            if np.sum(delta_final, dtype=int) in range(2, T):
+            if np.sum(delta_final, dtype=int) in range(1, T):
                 all_loss = []
                 candidate_indexes = np.where((delta_final[1:T-1] - delta_final[2:T]) != 0)[0] + 1
-                # print(candidate_indexes)
                 for i in candidate_indexes:
                     delta_candidate = np.copy(delta_final)
                     # try different swaps
@@ -396,7 +412,7 @@ class Bayesian_SIR:
                     eta_candidate = np.cumsum(delta_candidate)
                     candidate_loss = compute_loss(eta_candidate, self.q_matrix)
                     all_loss.append(candidate_loss)
-                if min(all_loss) < current_loss:
+                if all_loss and min(all_loss) < current_loss:
                     # better delta found: apply swap
                     current_loss = min(all_loss)
                     best_index = candidate_indexes[np.argmin(all_loss)]
@@ -410,7 +426,6 @@ class Bayesian_SIR:
                 # max iteration reached
                 Index_add, Index_swap = [False, False]
         pbar.close()
-        
         self.delta_final = delta_final
 
     """ Adjusted Rand Index """
