@@ -175,4 +175,4 @@ As one can see by the above plot with $\beta$ the *transmission rate* is very hi
 
 #### 8. Conclusion
 
-Overall, we have been able to reproduce many of the results shown and to correct some mistakes made by the cited authors. Still some investigations must be carried out in order to understand with $\delta_t^{(g)}$ does not show the same behaviour presented in the paper, but only two of the main *change points*.
+Overall, we have been able to reproduce many of the results shown and to correct some mistakes made by the cited authors. Still some investigations must be carried out in order to understand with $\delta_t^{(g)}$ does not show the same behaviour presented in the paper, identifying only two of the main *change points*.
