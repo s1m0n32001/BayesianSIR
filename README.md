@@ -67,7 +67,7 @@ Once we have sampled the new $\delta^{\star}$, we get a new $\eta^\star$ and $K^
 $$b_k \sim\text{Gamma}(0.1 + \sum_{t} \mathbb{I}(\eta_t = k), 0.1 + \sum_t \beta_t \mathbb{I}(\eta_t = k))$$
 and
 
-$$r_k \sim\text{Gamma}(0.1 + \sum_{t}\mathbb{I}(\eta_t = k), 0.1 - \sum_t \log{\gamma_t})\mathbb{I}(\eta_t = k)$$
+$$r_k \sim\text{Gamma}(0.1 + \sum_{t}\mathbb{I}(\eta_t = k), 0.1 - \sum_t \log{\gamma_t}\mathbb{I}(\eta_t = k))$$
    <!-- b,r ~ some Gamma function -->
 #### 3b. Update $\beta, \gamma$:
    Finally, the parameters $\beta$ and $\gamma$ can be updated. 
