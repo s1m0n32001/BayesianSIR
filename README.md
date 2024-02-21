@@ -55,7 +55,7 @@ $$ \frac{J(\delta^{(g)}\big\vert\delta^\star)}{J(\delta^\star\big\vert\delta^{(g
    \begin{cases}
       \frac{\sum_t \mathbb{I}(\delta^{(g),t} \neq \delta^{(g), t+1})}{\sum_t \mathbb{I}(\delta^{\star,t} \neq \delta^{\star,t+1})} \quad \text{ if }K^{(g)} = K_{proposed}\\
       \frac{3}{T-1} \quad \text{ if }(K_{proposed}, K^{(g)}) = (1,2) \text{ or }(T, T-1)\\
-      \frac{T-11}{3} \quad \text{ if }(K_{proposed}, K^{(g)}) = (2,1)\text{ or }(T-1, T)\\
+      \frac{T-1}{3} \quad \text{ if }(K_{proposed}, K^{(g)}) = (2,1)\text{ or }(T-1, T)\\
       \frac{\sum \delta_t^{(g)} - 1}{T - \sum_t \delta} \quad \text{ if }(K_{proposed}, K^{(g)}) = (2,3)\dots(T-2, T-1)\\
       \frac{T - \sum_t \delta}{\sum_t \delta_t^{(g)} - 1} \quad \text{ if }(K_{proposed}, K^{(g)}) = (3,2),\dots,(T-1,T-2)
   \end{cases}$$
