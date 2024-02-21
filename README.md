@@ -105,7 +105,7 @@ Then, $\hat{\delta}$ is the one minimizing the following loss: $$\hat{\delta} = 
 
 #### 5. Simulated data
 
-To evaluate performances of the explained method, we have simulated the Bayesian SIR model sampling $\Delta I$ and $\Delta R$ from the corresponding binomial distributions and then computing the three variables $S,\:I,\:R$. Below we present a $\texttt{Scenario}$ similar to the one proposed in the studied paper, having set as initial conditions $$N=10^6,\: I_0=50\: \text{and}\: T=100\:\text{days}.$$  
+To evaluate performances of the explained method, we have simulated the Bayesian SIR model sampling $\Delta I$ and $\Delta R$ from the corresponding binomial distributions and then computing the three variables $S, \  I,\ R$. Below we present a $\texttt{Scenario}$ similar to the one proposed in the studied paper, having set as initial conditions $$N=10^6,\ I_0=50\ \text{and}\ T=100\ \text{days}.$$  
 
 <p align="center">
   <img src="img/simulated_data.png" height="220"/>
@@ -125,7 +125,38 @@ The plot below shows the $\delta$ change points in the run simulation $\texttt{S
 
 #### 6. Mutual Information and Adjusted Rand Index
 
-Changing the probability $p$ characterizing $\delta$'s vectors we have evaluated the change in the Mutual Information ($MI$) and the Adjusted Rand Index ($ARI$) measures. 
+Changing the probability $p$ characterizing $\delta$'s vectors we have evaluated the change in the Mutual Information ($MI$) and the Adjusted Rand Index ($ARI$) measures.
+The MI is computed as:
+
+$$
+MI = \sum_{k=1}^K \sum_{k'=1}^{\hat{K}} \frac{n_{kk'}}{T} log \left( \frac{n_{kk'}T}{n_{k}n_{k'}} \right)
+$$
+
+Where $\hat{\eta}$ is the result of the Gibbs sampling, and $\eta$ is the "true value" underlying the simulation. 
+
+$$ \begin{cases}
+  \hat{K} = \displaystyle\sum_{t=1}^T \hat{\delta}_t \\
+  n_{kk'} = \displaystyle\sum_{t=1}^T \mathbb{I}(\eta_t=k, \hat{\eta}_t=k') \\
+  n_{k} = \displaystyle\sum_{t=1}^T \mathbb{I}(\eta_t=k) \\
+  n_{k'} = \displaystyle\sum_{t=1}^T \mathbb{I}(\hat{\eta}_t=k')
+\end{cases}$$
+
+The ARI is obtained through the following formula:
+
+$$
+ARI = \frac{(TP + TN) - \{(TP + FP)(TP + FN) + (TN + FP)(TN + FN)\}}{1 - \{(TP + FP)(TP + FN) + (TN + FP)(TN + FN)\}}
+$$
+
+which accounts for True Positives and True Negatives between the entries of the original $\eta$ and its best estimator $\hat{\eta}$.
+
+$$
+\begin{cases}
+TP = \frac{2}{T(T-1)} \sum_{1 \leq t < t' \leq T} \mathbb{I}(\eta_t = \eta_{t'}, \hat{\eta}_t = \hat{\eta}_{t'}), \\
+FP = \frac{2}{T(T-1)} \sum_{1 \leq t < t' \leq T} \mathbb{I}(\eta_t \neq \eta_{t'}, \hat{\eta}_t = \hat{\eta}_{t'}), \\
+FN = \frac{2}{T(T-1)} \sum_{1 \leq t < t' \leq T} \mathbb{I}(\eta_t = \eta_{t'}, \hat{\eta}_t \neq \hat{\eta}_{t'}), \\
+TN = \frac{2}{T(T-1)} \sum_{1 \leq t < t' \leq T} \mathbb{I}(\eta_t \neq \eta_{t'}, \hat{\eta}_t \neq \hat{\eta}_{t'}).
+\end{cases}
+$$  
 
 <center>
 
