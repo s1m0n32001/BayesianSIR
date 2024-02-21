@@ -36,6 +36,24 @@ It is possible then to define $K:=\displaystyle\sum_{t=1}^T \delta_t$ and $\eta_
 
 Starting from the time series $(\Delta I_t, \Delta R_t)\big\vert_{t=1,...,T}$ with initial conditions $(S_0,I_0,R_0)$, the goal is to correctly infere $\delta, b,r, \beta, \gamma$.
 
+### Prior distributions
+The parameters are distributed according to the following priors:
+
+$$\beta_t|\delta, b \sim \text{Exp}(b_{eta_t})$$
+
+$$\gamma_t | \delta, b \sim \text{Beta}(r_{eta_t}, 1)$$
+
+$$b_1, \dots, b_K \sim \text{Gamma}(0.1, 0.1)$$
+
+$$r_1, \dots, r_K \sim \text{Gamma}(0.1, 0.1)$$
+
+$$\delta_1, \dots, \delta_T \sim \text{Bernoulli}(p)$$
+
+Here, $p$ is a hyperparameter which we kept fixed at $0.01$.
+
+
+### Bayesian Analysis with MCMC
+
 The posterior probability is sampled through a **Markov Chain Monte Carlo** algorithm, in which a step $g$ is computed following a **Gibbs sampling** procedure:
 
 #### 1. Propose a new $\delta$: delete, add or swap a $1$.
