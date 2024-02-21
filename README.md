@@ -99,7 +99,7 @@ In both cases, the posterior is a combination of the likelihood of a binomial va
 #### 4. Change-points prediction 
 Finally, the set of $\delta^{(g)}$ obtained from the MC sampling is used to produce the Bayes estimator $\hat{\delta}$. Interpreting each $\delta^{(g)}$ as a cluster of time points $1, \dots, T$, $\hat{\delta}$ is obtained solving a clustering aggregation problem. 
 
-First, one computes the matrix $\hat{Q}$ whose entries are: $$\hat{q}_{tt'}=\frac{1}{G}\displaystyle\sum_{g=1}^G \mathbb{I}(\eta_t^{(g)}= \eta_{t'}^{(g)})$$ representing the posterior probability that no change point exists in the interval $\{t+1, \dots t'\}$, with of course $1\leq t < t' \leq T$.
+First, one computes the matrix $\hat{Q}$ whose entries are: <p>$$\hat{q}(t,t')=\frac{1}{G}\displaystyle\sum_{g=1}^G \mathbb{I}(\eta_t^{(g)}= \eta_{t'}^{(g)})$$<p> representing the posterior probability that no change point exists in the interval $\{t+1, \dots t'\}$, with of course $1\leq t < t' \leq T$.
 
 Then, $\hat{\delta}$ is the one minimizing the following loss: $$\hat{\delta} = \underset{\delta}{\text{argmin}} \displaystyle\sum_{1\leq t < t' \leq T} \big\vert \mathbb{I}(\eta_t = \eta_{t'}) - \hat{q}_{tt'} \big\vert$$
 
