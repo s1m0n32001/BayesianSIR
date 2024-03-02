@@ -2,3 +2,7 @@ Code/*
 *.pyc
 *.R
 *.csv
+
+Bayesian_SIR_1302.ipynb
+Bayesian_SIR_Ric.ipynb
+Bayesian_SIR.ipynb
